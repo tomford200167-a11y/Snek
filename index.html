@@ -28,6 +28,22 @@
 
     <canvas id="board" width="440" height="440" aria-label="Snake game board"></canvas>
     <p id="status" class="status">Press any movement key to start.</p>
+
+    <section class="panels" aria-label="Game progression panels">
+      <article class="panel">
+        <h2>Run Goals</h2>
+        <ul id="goals" class="goals"></ul>
+      </article>
+      <article class="panel">
+        <h2>Forever Plan</h2>
+        <ol class="roadmap">
+          <li><strong>Now:</strong> polish controls, speed presets, levels, bonus food.</li>
+          <li><strong>Next:</strong> dynamic obstacles that increase with each level.</li>
+          <li><strong>Later:</strong> powerups + challenge modifiers + theme unlocks.</li>
+        </ol>
+        <p class="meta">Unlocked milestones: <strong id="milestones">0</strong></p>
+      </article>
+    </section>
   </main>
   <script src="script.js"></script>
 </body>

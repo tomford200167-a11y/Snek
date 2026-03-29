@@ -5,10 +5,19 @@ const bestEl = document.getElementById('best');
 const levelEl = document.getElementById('level');
 const statusEl = document.getElementById('status');
 const speedEl = document.getElementById('speed');
+const goalsEl = document.getElementById('goals');
+const milestonesEl = document.getElementById('milestones');
 
 const gridSize = 20;
 const tiles = canvas.width / gridSize;
 const bestScoreKey = 'snake-neon-best';
+const milestoneKey = 'snake-neon-milestones';
+const baseGoals = [
+  { id: 'first-bite', text: 'Eat your first snack', target: 1, type: 'score' },
+  { id: 'five-up', text: 'Reach score 5', target: 5, type: 'score' },
+  { id: 'steady', text: 'Reach level 3', target: 3, type: 'level' },
+  { id: 'bonus', text: 'Eat a golden snack', target: 1, type: 'bonus' },
+];
 
 let snake;
 let direction;
@@ -16,6 +25,7 @@ let nextDirection;
 let food;
 let bonusFood;
 let bonusExpiresAt;
+let obstacles;
 let score;
 let level;
 let best;
@@ -23,6 +33,8 @@ let gameOver;
 let started;
 let paused;
 let loopHandle;
+let bonusEaten;
+let milestones;
 
 function randomTile() {
   return {
@@ -31,29 +43,74 @@ function randomTile() {
   };
 }
 
+function sameTile(a, b) {
+  return a.x === b.x && a.y === b.y;
+}
+
 function isOnSnake(tile) {
-  return snake.some((segment) => segment.x === tile.x && segment.y === tile.y);
+  return snake.some((segment) => sameTile(segment, tile));
+}
+
+function isOnObstacle(tile) {
+  return obstacles.some((segment) => sameTile(segment, tile));
 }
 
 function isOnFood(tile) {
-  return (food && tile.x === food.x && tile.y === food.y) || (bonusFood && tile.x === bonusFood.x && tile.y === bonusFood.y);
+  return (food && sameTile(tile, food)) || (bonusFood && sameTile(tile, bonusFood));
+}
+
+function randomFreeTile() {
+  let candidate = randomTile();
+  while (isOnSnake(candidate) || isOnObstacle(candidate) || isOnFood(candidate)) {
+    candidate = randomTile();
+  }
+  return candidate;
 }
 
 function placeFood() {
-  let candidate = randomTile();
-  while (isOnSnake(candidate) || isOnFood(candidate)) {
-    candidate = randomTile();
-  }
-  food = candidate;
+  food = randomFreeTile();
 }
 
 function placeBonusFood() {
-  let candidate = randomTile();
-  while (isOnSnake(candidate) || isOnFood(candidate)) {
-    candidate = randomTile();
-  }
-  bonusFood = candidate;
+  bonusFood = randomFreeTile();
   bonusExpiresAt = Date.now() + 5000;
+}
+
+function buildObstacles() {
+  const count = Math.max(0, level - 2);
+  obstacles = [];
+  while (obstacles.length < count) {
+    const tile = randomTile();
+    const safeCenter = Math.abs(tile.x - Math.floor(tiles / 2)) <= 2 && Math.abs(tile.y - Math.floor(tiles / 2)) <= 2;
+    if (safeCenter || isOnSnake(tile) || isOnObstacle(tile) || isOnFood(tile)) {
+      continue;
+    }
+    obstacles.push(tile);
+  }
+}
+
+function goalDone(goal) {
+  if (goal.type === 'score') return score >= goal.target;
+  if (goal.type === 'level') return level >= goal.target;
+  if (goal.type === 'bonus') return bonusEaten >= goal.target;
+  return false;
+}
+
+function renderGoals() {
+  goalsEl.innerHTML = '';
+  baseGoals.forEach((goal) => {
+    const li = document.createElement('li');
+    const done = goalDone(goal);
+    li.className = done ? 'done' : '';
+    li.textContent = `${done ? '✅' : '⬜'} ${goal.text}`;
+    goalsEl.append(li);
+  });
+}
+
+function updateMilestones() {
+  const completed = baseGoals.filter(goalDone).length;
+  milestones = Math.max(milestones, completed);
+  milestonesEl.textContent = String(milestones);
 }
 
 function updateUi() {
@@ -68,8 +125,11 @@ function updateUi() {
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
   } else {
-    statusEl.textContent = bonusFood ? '✨ Golden food is live for 5 seconds!' : 'Keep going!';
+    statusEl.textContent = bonusFood ? '✨ Golden snack is live for 5 seconds!' : 'Build your streak.';
   }
+
+  renderGoals();
+  updateMilestones();
 }
 
 function resetGame() {
@@ -84,6 +144,8 @@ function resetGame() {
   started = false;
   bonusFood = null;
   bonusExpiresAt = 0;
+  bonusEaten = 0;
+  obstacles = [];
   placeFood();
   updateUi();
   draw();
@@ -121,11 +183,19 @@ function getTickMs() {
   return Math.max(55, selected - levelBoost);
 }
 
+function onLevelChange(previousLevel) {
+  if (level !== previousLevel) {
+    buildObstacles();
+  }
+}
+
 function handleFoodCollision(head) {
-  if (head.x === food.x && head.y === food.y) {
+  if (sameTile(head, food)) {
+    const previousLevel = level;
     score += 1;
     level = 1 + Math.floor(score / 5);
     best = Math.max(best, score);
+    onLevelChange(previousLevel);
     placeFood();
 
     if (score > 0 && score % 4 === 0) {
@@ -136,12 +206,15 @@ function handleFoodCollision(head) {
     return;
   }
 
-  if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+  if (bonusFood && sameTile(head, bonusFood)) {
+    const previousLevel = level;
     score += 3;
+    bonusEaten += 1;
     level = 1 + Math.floor(score / 5);
     best = Math.max(best, score);
     bonusFood = null;
     bonusExpiresAt = 0;
+    onLevelChange(previousLevel);
     updateUi();
     return;
   }
@@ -169,8 +242,9 @@ function step() {
 
   const hitWall = head.x < 0 || head.y < 0 || head.x >= tiles || head.y >= tiles;
   const hitSelf = isOnSnake(head);
+  const hitObstacle = isOnObstacle(head);
 
-  if (hitWall || hitSelf) {
+  if (hitWall || hitSelf || hitObstacle) {
     gameOver = true;
     started = false;
     updateUi();
@@ -209,6 +283,7 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawGrid();
 
+  obstacles.forEach((block) => drawTile(block.x, block.y, '#64748b', 4));
   drawTile(food.x, food.y, '#ef4444', 3);
   if (bonusFood) {
     drawTile(bonusFood.x, bonusFood.y, '#facc15', 2);
@@ -233,12 +308,14 @@ function startLoop() {
   function tick() {
     step();
     localStorage.setItem(bestScoreKey, String(best));
+    localStorage.setItem(milestoneKey, String(milestones));
     loopHandle = setTimeout(tick, getTickMs());
   }
   tick();
 }
 
 best = Number(localStorage.getItem(bestScoreKey) || '0');
+milestones = Number(localStorage.getItem(milestoneKey) || '0');
 window.addEventListener('keydown', onKeyDown);
 speedEl.addEventListener('change', () => {
   statusEl.textContent = `Speed set to ${speedEl.options[speedEl.selectedIndex].text}.`;

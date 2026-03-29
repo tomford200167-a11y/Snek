@@ -17,7 +17,7 @@ body {
 }
 
 .app {
-  width: min(95vw, 560px);
+  width: min(96vw, 720px);
   text-align: center;
   padding: 1rem;
   border: 1px solid #1f2937;
@@ -50,7 +50,8 @@ h1 {
   flex-wrap: wrap;
 }
 
-.hud strong {
+.hud strong,
+.meta strong {
   color: #a7f3d0;
 }
 
@@ -70,8 +71,8 @@ h1 {
 }
 
 #board {
-  width: min(92vw, 440px);
-  height: min(92vw, 440px);
+  width: min(90vw, 440px);
+  height: min(90vw, 440px);
   border: 2px solid #334155;
   border-radius: 12px;
   background: #020617;
@@ -79,7 +80,46 @@ h1 {
 }
 
 .status {
-  margin-top: 0.75rem;
+  margin: 0.75rem 0;
   color: #cbd5e1;
   min-height: 1.2rem;
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.panel {
+  border: 1px solid #243244;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.goals,
+.roadmap {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #cbd5e1;
+}
+
+.goals li {
+  margin: 0.3rem 0;
+}
+
+.done {
+  color: #86efac;
+}
+
+.meta {
+  margin: 0.75rem 0 0;
+  color: #94a3b8;
 }
