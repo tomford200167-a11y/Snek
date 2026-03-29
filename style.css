@@ -70,6 +70,21 @@ h1 {
   color: #e2e8f0;
 }
 
+.modifiers {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  color: #cbd5e1;
+  flex-wrap: wrap;
+}
+
+.modifiers label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 #board {
   width: min(90vw, 440px);
   height: min(90vw, 440px);

@@ -3,10 +3,13 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
 const levelEl = document.getElementById('level');
+const shieldEl = document.getElementById('shield');
 const statusEl = document.getElementById('status');
 const speedEl = document.getElementById('speed');
 const goalsEl = document.getElementById('goals');
 const milestonesEl = document.getElementById('milestones');
+const wrapModeEl = document.getElementById('wrap-mode');
+const assistModeEl = document.getElementById('assist-mode');
 
 const gridSize = 20;
 const tiles = canvas.width / gridSize;
@@ -17,6 +20,7 @@ const baseGoals = [
   { id: 'five-up', text: 'Reach score 5', target: 5, type: 'score' },
   { id: 'steady', text: 'Reach level 3', target: 3, type: 'level' },
   { id: 'bonus', text: 'Eat a golden snack', target: 1, type: 'bonus' },
+  { id: 'shield', text: 'Collect a shield orb', target: 1, type: 'shield' },
 ];
 
 let snake;
@@ -24,6 +28,7 @@ let direction;
 let nextDirection;
 let food;
 let bonusFood;
+let shieldOrb;
 let bonusExpiresAt;
 let obstacles;
 let score;
@@ -34,6 +39,8 @@ let started;
 let paused;
 let loopHandle;
 let bonusEaten;
+let shieldsCollected;
+let shieldCharges;
 let milestones;
 
 function randomTile() {
@@ -56,7 +63,7 @@ function isOnObstacle(tile) {
 }
 
 function isOnFood(tile) {
-  return (food && sameTile(tile, food)) || (bonusFood && sameTile(tile, bonusFood));
+  return (food && sameTile(tile, food)) || (bonusFood && sameTile(tile, bonusFood)) || (shieldOrb && sameTile(tile, shieldOrb));
 }
 
 function randomFreeTile() {
@@ -76,6 +83,12 @@ function placeBonusFood() {
   bonusExpiresAt = Date.now() + 5000;
 }
 
+function maybePlaceShield() {
+  if (!shieldOrb && score > 0 && score % 6 === 0) {
+    shieldOrb = randomFreeTile();
+  }
+}
+
 function buildObstacles() {
   const count = Math.max(0, level - 2);
   obstacles = [];
@@ -93,6 +106,7 @@ function goalDone(goal) {
   if (goal.type === 'score') return score >= goal.target;
   if (goal.type === 'level') return level >= goal.target;
   if (goal.type === 'bonus') return bonusEaten >= goal.target;
+  if (goal.type === 'shield') return shieldsCollected >= goal.target;
   return false;
 }
 
@@ -117,6 +131,7 @@ function updateUi() {
   scoreEl.textContent = String(score);
   bestEl.textContent = String(best);
   levelEl.textContent = String(level);
+  shieldEl.textContent = String(shieldCharges);
 
   if (gameOver) {
     statusEl.textContent = '💥 Game over. Press Space to restart.';
@@ -124,6 +139,8 @@ function updateUi() {
     statusEl.textContent = '⏸ Paused. Press P to continue.';
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
+  } else if (shieldCharges > 0) {
+    statusEl.textContent = `🛡 Shield active (${shieldCharges}) - next crash is forgiven.`;
   } else {
     statusEl.textContent = bonusFood ? '✨ Golden snack is live for 5 seconds!' : 'Build your streak.';
   }
@@ -143,8 +160,11 @@ function resetGame() {
   paused = false;
   started = false;
   bonusFood = null;
+  shieldOrb = null;
   bonusExpiresAt = 0;
   bonusEaten = 0;
+  shieldsCollected = 0;
+  shieldCharges = 0;
   obstacles = [];
   placeFood();
   updateUi();
@@ -180,7 +200,8 @@ function onKeyDown(event) {
 function getTickMs() {
   const selected = Number(speedEl.value);
   const levelBoost = Math.min(45, (level - 1) * 3);
-  return Math.max(55, selected - levelBoost);
+  const assistBoost = assistModeEl.checked ? 18 : 0;
+  return Math.max(55, selected - levelBoost + assistBoost);
 }
 
 function onLevelChange(previousLevel) {
@@ -197,6 +218,7 @@ function handleFoodCollision(head) {
     best = Math.max(best, score);
     onLevelChange(previousLevel);
     placeFood();
+    maybePlaceShield();
 
     if (score > 0 && score % 4 === 0) {
       placeBonusFood();
@@ -215,11 +237,39 @@ function handleFoodCollision(head) {
     bonusFood = null;
     bonusExpiresAt = 0;
     onLevelChange(previousLevel);
+    maybePlaceShield();
+    updateUi();
+    return;
+  }
+
+  if (shieldOrb && sameTile(head, shieldOrb)) {
+    shieldCharges += 1;
+    shieldsCollected += 1;
+    shieldOrb = null;
     updateUi();
     return;
   }
 
   snake.pop();
+}
+
+function resolveHeadPosition(rawHead) {
+  if (wrapModeEl.checked) {
+    return {
+      x: (rawHead.x + tiles) % tiles,
+      y: (rawHead.y + tiles) % tiles,
+    };
+  }
+  return rawHead;
+}
+
+function consumeShield() {
+  if (shieldCharges > 0) {
+    shieldCharges -= 1;
+    statusEl.textContent = '🛡 Shield absorbed the hit!';
+    return true;
+  }
+  return false;
 }
 
 function step() {
@@ -235,18 +285,24 @@ function step() {
   }
 
   direction = nextDirection;
-  const head = {
+  const rawHead = {
     x: snake[0].x + direction.x,
     y: snake[0].y + direction.y,
   };
+  const head = resolveHeadPosition(rawHead);
 
-  const hitWall = head.x < 0 || head.y < 0 || head.x >= tiles || head.y >= tiles;
+  const hitWall = !wrapModeEl.checked && (head.x < 0 || head.y < 0 || head.x >= tiles || head.y >= tiles);
   const hitSelf = isOnSnake(head);
   const hitObstacle = isOnObstacle(head);
 
   if (hitWall || hitSelf || hitObstacle) {
-    gameOver = true;
-    started = false;
+    if (!consumeShield()) {
+      gameOver = true;
+      started = false;
+      updateUi();
+      draw();
+      return;
+    }
     updateUi();
     draw();
     return;
@@ -288,6 +344,9 @@ function draw() {
   if (bonusFood) {
     drawTile(bonusFood.x, bonusFood.y, '#facc15', 2);
   }
+  if (shieldOrb) {
+    drawTile(shieldOrb.x, shieldOrb.y, '#38bdf8', 2);
+  }
 
   snake.forEach((segment, index) => {
     drawTile(segment.x, segment.y, index === 0 ? '#34d399' : '#10b981');
@@ -319,6 +378,12 @@ milestones = Number(localStorage.getItem(milestoneKey) || '0');
 window.addEventListener('keydown', onKeyDown);
 speedEl.addEventListener('change', () => {
   statusEl.textContent = `Speed set to ${speedEl.options[speedEl.selectedIndex].text}.`;
+});
+wrapModeEl.addEventListener('change', () => {
+  statusEl.textContent = wrapModeEl.checked ? 'Wrap mode on: walls loop around.' : 'Wrap mode off: walls are deadly.';
+});
+assistModeEl.addEventListener('change', () => {
+  statusEl.textContent = assistModeEl.checked ? 'Assist mode on: slightly slower tick speed.' : 'Assist mode off.';
 });
 
 resetGame();
