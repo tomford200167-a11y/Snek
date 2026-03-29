@@ -8,6 +8,7 @@ const statusEl = document.getElementById('status');
 const speedEl = document.getElementById('speed');
 const goalsEl = document.getElementById('goals');
 const milestonesEl = document.getElementById('milestones');
+const historyEl = document.getElementById('history');
 const wrapModeEl = document.getElementById('wrap-mode');
 const assistModeEl = document.getElementById('assist-mode');
 
@@ -15,6 +16,7 @@ const gridSize = 20;
 const tiles = canvas.width / gridSize;
 const bestScoreKey = 'snake-neon-best';
 const milestoneKey = 'snake-neon-milestones';
+const historyKey = 'snake-neon-history';
 const baseGoals = [
   { id: 'first-bite', text: 'Eat your first snack', target: 1, type: 'score' },
   { id: 'five-up', text: 'Reach score 5', target: 5, type: 'score' },
@@ -42,6 +44,9 @@ let bonusEaten;
 let shieldsCollected;
 let shieldCharges;
 let milestones;
+let runHistory;
+let touchStartX;
+let touchStartY;
 
 function randomTile() {
   return {
@@ -121,6 +126,33 @@ function renderGoals() {
   });
 }
 
+function renderHistory() {
+  historyEl.innerHTML = '';
+  if (runHistory.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No runs yet.';
+    historyEl.append(li);
+    return;
+  }
+  runHistory.forEach((entry) => {
+    const li = document.createElement('li');
+    li.textContent = `Score ${entry.score} · Level ${entry.level} · ${entry.note}`;
+    historyEl.append(li);
+  });
+}
+
+function saveRun(reason) {
+  if (score <= 0) return;
+  runHistory.unshift({
+    score,
+    level,
+    note: reason,
+  });
+  runHistory = runHistory.slice(0, 6);
+  localStorage.setItem(historyKey, JSON.stringify(runHistory));
+  renderHistory();
+}
+
 function updateMilestones() {
   const completed = baseGoals.filter(goalDone).length;
   milestones = Math.max(milestones, completed);
@@ -180,6 +212,13 @@ function setDirection(x, y) {
   updateUi();
 }
 
+function moveByName(name) {
+  if (name === 'up') setDirection(0, -1);
+  if (name === 'down') setDirection(0, 1);
+  if (name === 'left') setDirection(-1, 0);
+  if (name === 'right') setDirection(1, 0);
+}
+
 function onKeyDown(event) {
   const key = event.key.toLowerCase();
   if (key === 'arrowup' || key === 'w') setDirection(0, -1);
@@ -194,6 +233,24 @@ function onKeyDown(event) {
 
   if (key === ' ' && gameOver) {
     resetGame();
+  }
+}
+
+function onTouchStart(event) {
+  const touch = event.changedTouches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function onTouchEnd(event) {
+  const touch = event.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+  if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    moveByName(dx > 0 ? 'right' : 'left');
+  } else {
+    moveByName(dy > 0 ? 'down' : 'up');
   }
 }
 
@@ -299,6 +356,7 @@ function step() {
     if (!consumeShield()) {
       gameOver = true;
       started = false;
+      saveRun(hitObstacle ? 'Obstacle hit' : 'Crash');
       updateUi();
       draw();
       return;
@@ -375,7 +433,15 @@ function startLoop() {
 
 best = Number(localStorage.getItem(bestScoreKey) || '0');
 milestones = Number(localStorage.getItem(milestoneKey) || '0');
+runHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
 window.addEventListener('keydown', onKeyDown);
+canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+
+document.querySelectorAll('[data-dir]').forEach((button) => {
+  button.addEventListener('click', () => moveByName(button.dataset.dir));
+});
+
 speedEl.addEventListener('change', () => {
   statusEl.textContent = `Speed set to ${speedEl.options[speedEl.selectedIndex].text}.`;
 });
@@ -386,5 +452,6 @@ assistModeEl.addEventListener('change', () => {
   statusEl.textContent = assistModeEl.checked ? 'Assist mode on: slightly slower tick speed.' : 'Assist mode off.';
 });
 
+renderHistory();
 resetGame();
 startLoop();
