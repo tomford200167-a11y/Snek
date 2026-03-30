@@ -92,6 +92,7 @@ h1 {
   border-radius: 12px;
   background: #020617;
   box-shadow: 0 0 22px rgba(45, 212, 191, 0.2);
+  touch-action: none;
 }
 
 .touch-controls {
@@ -107,6 +108,7 @@ h1 {
   background: #0f172a;
   color: #cbd5e1;
   font-size: 1rem;
+  cursor: pointer;
 }
 
 .touch-controls div {

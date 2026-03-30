@@ -48,6 +48,15 @@ let runHistory;
 let touchStartX;
 let touchStartY;
 
+function loadJsonArray(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function randomTile() {
   return {
     x: Math.floor(Math.random() * tiles),
@@ -237,12 +246,14 @@ function onKeyDown(event) {
 }
 
 function onTouchStart(event) {
+  event.preventDefault();
   const touch = event.changedTouches[0];
   touchStartX = touch.clientX;
   touchStartY = touch.clientY;
 }
 
 function onTouchEnd(event) {
+  event.preventDefault();
   const touch = event.changedTouches[0];
   const dx = touch.clientX - touchStartX;
   const dy = touch.clientY - touchStartY;
@@ -433,10 +444,10 @@ function startLoop() {
 
 best = Number(localStorage.getItem(bestScoreKey) || '0');
 milestones = Number(localStorage.getItem(milestoneKey) || '0');
-runHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+runHistory = loadJsonArray(historyKey);
 window.addEventListener('keydown', onKeyDown);
-canvas.addEventListener('touchstart', onTouchStart, { passive: true });
-canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+canvas.addEventListener('touchend', onTouchEnd, { passive: false });
 
 document.querySelectorAll('[data-dir]').forEach((button) => {
   button.addEventListener('click', () => moveByName(button.dataset.dir));
