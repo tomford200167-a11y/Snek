@@ -3,66 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Snake Neon Rush (Simple Snake)</title>
+  <title>Simple Snake</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <h1>🐍 Snake Neon Rush</h1>
-    <p class="help">Use Arrow keys or WASD to move. Pause with P and restart with Space after game over.</p>
+  <main class="game">
+    <h1>Simple Snake</h1>
+    <p class="help">Arrow keys / WASD to move · Space to restart</p>
 
-    <div class="topbar">
-      <div class="hud">
-        <span>Score <strong id="score">0</strong></span>
-        <span>Best <strong id="best">0</strong></span>
-        <span>Level <strong id="level">1</strong></span>
-        <span>Shield <strong id="shield">0</strong></span>
-      </div>
-      <label class="speed-label" for="speed">Speed
-        <select id="speed">
-          <option value="150">Chill</option>
-          <option value="115" selected>Classic</option>
-          <option value="90">Turbo</option>
-        </select>
-      </label>
+    <div class="hud">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="best">0</strong></span>
     </div>
 
-    <div class="modifiers" aria-label="Gameplay modifiers">
-      <label><input id="wrap-mode" type="checkbox" /> Wrap walls</label>
-      <label><input id="assist-mode" type="checkbox" /> Assist mode</label>
-    </div>
-
-    <canvas id="board" width="440" height="440" aria-label="Snake game board"></canvas>
-    <div class="touch-controls" aria-label="Touch controls">
-      <button data-dir="up" aria-label="Move up">▲</button>
-      <div>
-        <button data-dir="left" aria-label="Move left">◀</button>
-        <button data-dir="down" aria-label="Move down">▼</button>
-        <button data-dir="right" aria-label="Move right">▶</button>
-      </div>
-    </div>
-    <p id="status" class="status">Press any movement key to start.</p>
-
-    <section class="panels" aria-label="Game progression panels">
-      <article class="panel">
-        <h2>Run Goals</h2>
-        <ul id="goals" class="goals"></ul>
-      </article>
-      <article class="panel">
-        <h2>Forever Plan</h2>
-        <ol class="roadmap">
-          <li><strong>Now:</strong> polish controls, speed presets, levels, bonus food.</li>
-          <li><strong>Next:</strong> dynamic obstacles that increase with each level.</li>
-          <li><strong>Later:</strong> powerups + challenge modifiers + theme unlocks.</li>
-        </ol>
-        <p class="meta">Unlocked milestones: <strong id="milestones">0</strong></p>
-      </article>
-      <article class="panel">
-        <h2>Run History</h2>
-        <ol id="history" class="history"></ol>
-      </article>
-    </section>
+    <canvas id="board" width="400" height="400" aria-label="Snake game board"></canvas>
+    <p id="status" class="status">Press a direction key to start.</p>
   </main>
+
   <script src="script.js"></script>
 </body>
 </html>
