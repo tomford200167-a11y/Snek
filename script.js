@@ -121,6 +121,7 @@ function updateUi() {
   comboEl.textContent = `x${combo}`;
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space or Restart to play again.';
+    statusEl.textContent = 'Game over. Press Space to restart.';
   } else if (paused) {
     statusEl.textContent = 'Paused. Press P or Pause to continue.';
   } else if (!started) {
@@ -205,6 +206,7 @@ function onKeyDown(event) {
   if (event.code === 'KeyP' || key === 'p') {
     event.preventDefault();
     togglePause();
+    resetGame();
   }
 }
 
