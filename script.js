@@ -2,6 +2,7 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
+const portalsEl = document.getElementById('portals');
 const statusEl = document.getElementById('status');
 
 const gridSize = 20;
@@ -16,6 +17,8 @@ let score;
 let best;
 let gameOver;
 let started;
+let foodsEaten;
+let portals;
 
 function randomTile() {
   return {
@@ -26,10 +29,32 @@ function randomTile() {
 
 function placeFood() {
   let candidate = randomTile();
-  while (snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y)) {
+  while (
+    snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y) ||
+    (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y))
+  ) {
     candidate = randomTile();
   }
   food = candidate;
+}
+
+function placePortals() {
+  const occupied = (tile) =>
+    tile.x === food.x && tile.y === food.y ||
+    snake.some((segment) => segment.x === tile.x && segment.y === tile.y);
+
+  let first = randomTile();
+  while (occupied(first)) first = randomTile();
+
+  let second = randomTile();
+  while (
+    occupied(second) ||
+    (second.x === first.x && second.y === first.y)
+  ) {
+    second = randomTile();
+  }
+
+  portals = [first, second];
 }
 
 function resetGame() {
@@ -37,8 +62,10 @@ function resetGame() {
   direction = { x: 0, y: 0 };
   nextDirection = { x: 0, y: 0 };
   score = 0;
+  foodsEaten = 0;
   gameOver = false;
   started = false;
+  portals = null;
   placeFood();
   updateUi();
   draw();
@@ -47,10 +74,13 @@ function resetGame() {
 function updateUi() {
   scoreEl.textContent = String(score);
   bestEl.textContent = String(best);
+  portalsEl.textContent = portals ? '2' : '0';
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space to restart.';
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
+  } else if (portals) {
+    statusEl.textContent = 'Portal pair active! Glide through to teleport.';
   } else {
     statusEl.textContent = 'Keep going!';
   }
@@ -92,6 +122,17 @@ function step() {
     y: snake[0].y + direction.y,
   };
 
+  if (portals) {
+    const [first, second] = portals;
+    if (head.x === first.x && head.y === first.y) {
+      head.x = second.x;
+      head.y = second.y;
+    } else if (head.x === second.x && head.y === second.y) {
+      head.x = first.x;
+      head.y = first.y;
+    }
+  }
+
   const hitWall = head.x < 0 || head.y < 0 || head.x >= tiles || head.y >= tiles;
   const hitSelf = snake.some((segment) => segment.x === head.x && segment.y === head.y);
 
@@ -107,7 +148,11 @@ function step() {
 
   if (head.x === food.x && head.y === food.y) {
     score += 1;
+    foodsEaten += 1;
     best = Math.max(best, score);
+    if (foodsEaten % 5 === 0) {
+      placePortals();
+    }
     placeFood();
     updateUi();
   } else {
@@ -127,6 +172,12 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawTile(food.x, food.y, '#ef4444');
+
+  if (portals) {
+    drawTile(portals[0].x, portals[0].y, '#38bdf8');
+    drawTile(portals[1].x, portals[1].y, '#0ea5e9');
+  }
+
   snake.forEach((segment, index) => {
     drawTile(segment.x, segment.y, index === 0 ? '#22c55e' : '#16a34a');
   });
