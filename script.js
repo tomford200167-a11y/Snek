@@ -3,11 +3,15 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
 const portalsEl = document.getElementById('portals');
+const comboEl = document.getElementById('combo');
 const statusEl = document.getElementById('status');
 
 const gridSize = 20;
 const tiles = canvas.width / gridSize;
 const tickMs = 120;
+const comboWindowTicks = 14;
+const goldenFoodEvery = 7;
+const goldenFoodDuration = 35;
 
 let snake;
 let direction;
@@ -19,6 +23,10 @@ let gameOver;
 let started;
 let foodsEaten;
 let portals;
+let combo;
+let comboTicksLeft;
+let goldenFood;
+let goldenFoodTicksLeft;
 
 function randomTile() {
   return {
@@ -31,11 +39,26 @@ function placeFood() {
   let candidate = randomTile();
   while (
     snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y) ||
+    (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y)) ||
+    (goldenFood && candidate.x === goldenFood.x && candidate.y === goldenFood.y)
     (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y))
   ) {
     candidate = randomTile();
   }
   food = candidate;
+}
+
+function placeGoldenFood() {
+  let candidate = randomTile();
+  while (
+    snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y) ||
+    (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y)) ||
+    (candidate.x === food.x && candidate.y === food.y)
+  ) {
+    candidate = randomTile();
+  }
+  goldenFood = candidate;
+  goldenFoodTicksLeft = goldenFoodDuration;
 }
 
 function placePortals() {
@@ -66,6 +89,10 @@ function resetGame() {
   gameOver = false;
   started = false;
   portals = null;
+  combo = 1;
+  comboTicksLeft = 0;
+  goldenFood = null;
+  goldenFoodTicksLeft = 0;
   placeFood();
   updateUi();
   draw();
@@ -75,14 +102,19 @@ function updateUi() {
   scoreEl.textContent = String(score);
   bestEl.textContent = String(best);
   portalsEl.textContent = portals ? '2' : '0';
+  comboEl.textContent = `x${combo}`;
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space to restart.';
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
+  } else if (goldenFood) {
+    statusEl.textContent = `Golden snack live! ${goldenFoodTicksLeft} ticks left.`;
+  } else if (portals) {
+    statusEl.textContent = `Portal pair active! Combo ${comboEl.textContent}.`;
   } else if (portals) {
     statusEl.textContent = 'Portal pair active! Glide through to teleport.';
   } else {
-    statusEl.textContent = 'Keep going!';
+    statusEl.textContent = `Keep going! Combo ${comboEl.textContent}.`;
   }
 }
 
@@ -116,6 +148,25 @@ function step() {
   }
 
   direction = nextDirection;
+  let uiDirty = false;
+
+  if (comboTicksLeft > 0) {
+    comboTicksLeft -= 1;
+    if (comboTicksLeft === 0) {
+      combo = 1;
+      uiDirty = true;
+    }
+  }
+
+  if (goldenFood) {
+    goldenFoodTicksLeft -= 1;
+    uiDirty = true;
+    if (goldenFoodTicksLeft <= 0) {
+      goldenFood = null;
+      goldenFoodTicksLeft = 0;
+      uiDirty = true;
+    }
+  }
 
   const head = {
     x: snake[0].x + direction.x,
@@ -146,6 +197,30 @@ function step() {
 
   snake.unshift(head);
 
+  if (goldenFood && head.x === goldenFood.x && head.y === goldenFood.y) {
+    combo = Math.min(combo + 1, 5);
+    comboTicksLeft = comboWindowTicks;
+    score += 5 * combo;
+    goldenFood = null;
+    goldenFoodTicksLeft = 0;
+    best = Math.max(best, score);
+    updateUi();
+  } else if (head.x === food.x && head.y === food.y) {
+    if (comboTicksLeft > 0) {
+      combo = Math.min(combo + 1, 5);
+    } else {
+      combo = 1;
+    }
+    comboTicksLeft = comboWindowTicks;
+    score += combo;
+    foodsEaten += 1;
+    best = Math.max(best, score);
+    if (foodsEaten % 5 === 0) {
+      placePortals();
+    }
+    if (foodsEaten % goldenFoodEvery === 0) {
+      placeGoldenFood();
+    }
   if (head.x === food.x && head.y === food.y) {
     score += 1;
     foodsEaten += 1;
@@ -157,6 +232,10 @@ function step() {
     updateUi();
   } else {
     snake.pop();
+  }
+
+  if (uiDirty) {
+    updateUi();
   }
 
   draw();
@@ -172,6 +251,9 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawTile(food.x, food.y, '#ef4444');
+  if (goldenFood) {
+    drawTile(goldenFood.x, goldenFood.y, '#facc15');
+  }
 
   if (portals) {
     drawTile(portals[0].x, portals[0].y, '#38bdf8');
