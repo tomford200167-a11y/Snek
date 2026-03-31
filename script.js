@@ -126,14 +126,34 @@ function setDirection(x, y) {
 }
 
 function onKeyDown(event) {
+  const moveByCode = {
+    ArrowUp: [0, -1],
+    ArrowDown: [0, 1],
+    ArrowLeft: [-1, 0],
+    ArrowRight: [1, 0],
+    KeyW: [0, -1],
+    KeyS: [0, 1],
+    KeyA: [-1, 0],
+    KeyD: [1, 0],
+  };
+  const moveByKey = {
+    w: [0, -1],
+    s: [0, 1],
+    a: [-1, 0],
+    d: [1, 0],
+  };
   const key = event.key.toLowerCase();
+  const move = moveByCode[event.code] || moveByKey[key];
 
-  if (key === 'arrowup' || key === 'w') setDirection(0, -1);
-  if (key === 'arrowdown' || key === 's') setDirection(0, 1);
-  if (key === 'arrowleft' || key === 'a') setDirection(-1, 0);
-  if (key === 'arrowright' || key === 'd') setDirection(1, 0);
+  if (move) {
+    event.preventDefault();
+    setDirection(move[0], move[1]);
+    return;
+  }
 
-  if (key === ' ' && gameOver) {
+  const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+  if (isSpace && gameOver) {
+    event.preventDefault();
     resetGame();
   }
 }
