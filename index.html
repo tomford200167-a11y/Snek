@@ -9,10 +9,12 @@
 <body>
   <main class="app">
     <h1>Simple Snake</h1>
-    <p class="help">Use arrow keys or WASD to move. Press Space to restart after game over.</p>
+    <p class="help">Use arrow keys or WASD to move. Every 5 snacks unlocks portals, and combo streaks boost points. Press Space to restart after game over.</p>
     <div class="hud">
       <span>Score: <strong id="score">0</strong></span>
       <span>Best: <strong id="best">0</strong></span>
+      <span>Portals: <strong id="portals">0</strong></span>
+      <span>Combo: <strong id="combo">x1</strong></span>
     </div>
     <canvas id="board" width="400" height="400" aria-label="Snake game board"></canvas>
     <p id="status" class="status">Press any movement key to start.</p>
