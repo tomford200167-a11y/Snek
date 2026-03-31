@@ -191,6 +191,7 @@ function onKeyDown(event) {
   if (event.code === 'KeyP' || key === 'p') {
     event.preventDefault();
     togglePause();
+    resetGame();
   }
 }
 
