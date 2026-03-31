@@ -32,6 +32,18 @@ let comboTicksLeft;
 let goldenFood;
 let goldenFoodTicksLeft;
 
+function syncControls() {
+  if (startBtn) {
+    startBtn.disabled = started && !paused && !gameOver;
+    startBtn.textContent = gameOver ? 'New Game' : (paused ? 'Resume' : 'Start');
+  }
+
+  if (pauseBtn) {
+    pauseBtn.disabled = gameOver || !started;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  }
+}
+
 function randomTile() {
   return {
     x: Math.floor(Math.random() * tiles),
@@ -108,6 +120,7 @@ function updateUi() {
   portalsEl.textContent = portals ? '2' : '0';
   comboEl.textContent = `x${combo}`;
   if (gameOver) {
+    statusEl.textContent = 'Game over. Press Space or Restart to play again.';
     statusEl.textContent = 'Game over. Press Space to restart.';
   } else if (paused) {
     statusEl.textContent = 'Paused. Press P or Pause to continue.';
@@ -120,6 +133,8 @@ function updateUi() {
   } else {
     statusEl.textContent = `Keep going! Combo ${comboEl.textContent}.`;
   }
+
+  syncControls();
 }
 
 function setDirection(x, y) {
