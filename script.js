@@ -41,7 +41,6 @@ function placeFood() {
     snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y) ||
     (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y)) ||
     (goldenFood && candidate.x === goldenFood.x && candidate.y === goldenFood.y)
-    (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y))
   ) {
     candidate = randomTile();
   }
@@ -111,8 +110,6 @@ function updateUi() {
     statusEl.textContent = `Golden snack live! ${goldenFoodTicksLeft} ticks left.`;
   } else if (portals) {
     statusEl.textContent = `Portal pair active! Combo ${comboEl.textContent}.`;
-  } else if (portals) {
-    statusEl.textContent = 'Portal pair active! Glide through to teleport.';
   } else {
     statusEl.textContent = `Keep going! Combo ${comboEl.textContent}.`;
   }
@@ -220,13 +217,6 @@ function step() {
     }
     if (foodsEaten % goldenFoodEvery === 0) {
       placeGoldenFood();
-    }
-  if (head.x === food.x && head.y === food.y) {
-    score += 1;
-    foodsEaten += 1;
-    best = Math.max(best, score);
-    if (foodsEaten % 5 === 0) {
-      placePortals();
     }
     placeFood();
     updateUi();
