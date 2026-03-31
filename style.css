@@ -75,6 +75,35 @@ h1 {
   color: #f8fafc;
 }
 
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.controls button {
+  border: 1px solid #475569;
+  background: linear-gradient(180deg, rgb(30 41 59 / 90%), rgb(15 23 42 / 90%));
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.controls button:hover {
+  transform: translateY(-1px);
+  border-color: #64748b;
+  background: linear-gradient(180deg, rgb(51 65 85 / 90%), rgb(15 23 42 / 90%));
+}
+
+.controls button:active {
+  transform: translateY(0);
+}
+
 #board {
   width: min(100%, 420px);
   height: auto;
@@ -96,4 +125,21 @@ h1 {
   color: #cbd5e1;
   background: rgb(15 23 42 / 70%);
   font-size: 0.92rem;
+}
+
+.tips {
+  margin: 0.7rem 0 0.1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+kbd {
+  border: 1px solid #475569;
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+  color: #f8fafc;
+  background: rgb(15 23 42 / 78%);
+  font-family: inherit;
+  font-size: 0.8rem;
 }

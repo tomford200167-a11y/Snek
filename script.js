@@ -5,6 +5,9 @@ const bestEl = document.getElementById('best');
 const portalsEl = document.getElementById('portals');
 const comboEl = document.getElementById('combo');
 const statusEl = document.getElementById('status');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const restartBtn = document.getElementById('restartBtn');
 
 const gridSize = 20;
 const tiles = canvas.width / gridSize;
@@ -21,6 +24,7 @@ let score;
 let best;
 let gameOver;
 let started;
+let paused;
 let foodsEaten;
 let portals;
 let combo;
@@ -87,6 +91,7 @@ function resetGame() {
   foodsEaten = 0;
   gameOver = false;
   started = false;
+  paused = false;
   portals = null;
   combo = 1;
   comboTicksLeft = 0;
@@ -104,6 +109,8 @@ function updateUi() {
   comboEl.textContent = `x${combo}`;
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space to restart.';
+  } else if (paused) {
+    statusEl.textContent = 'Paused. Press P or Pause to continue.';
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
   } else if (goldenFood) {
@@ -121,8 +128,31 @@ function setDirection(x, y) {
   const isReversing = x === -direction.x && y === -direction.y;
   if (started && isReversing) return;
 
+  paused = false;
   nextDirection = { x, y };
   started = true;
+}
+
+function startGame() {
+  if (gameOver) {
+    resetGame();
+  }
+  if (!started) {
+    setDirection(1, 0);
+  } else {
+    paused = false;
+    updateUi();
+  }
+}
+
+function togglePause() {
+  if (gameOver || !started) return;
+  paused = !paused;
+  updateUi();
+}
+
+function restartGame() {
+  resetGame();
 }
 
 function onKeyDown(event) {
@@ -154,12 +184,19 @@ function onKeyDown(event) {
   const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
   if (isSpace && gameOver) {
     event.preventDefault();
+    restartGame();
+    return;
+  }
+
+  if (event.code === 'KeyP' || key === 'p') {
+    event.preventDefault();
+    togglePause();
     resetGame();
   }
 }
 
 function step() {
-  if (gameOver || !started) {
+  if (gameOver || !started || paused) {
     draw();
     return;
   }
@@ -286,6 +323,9 @@ function draw() {
 
 best = Number(localStorage.getItem('snake-best') || '0');
 window.addEventListener('keydown', onKeyDown);
+if (startBtn) startBtn.addEventListener('click', startGame);
+if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+if (restartBtn) restartBtn.addEventListener('click', restartGame);
 setInterval(() => {
   step();
   localStorage.setItem('snake-best', String(best));
