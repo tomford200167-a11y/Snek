@@ -2,11 +2,14 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
+const lengthEl = document.getElementById('length');
 const portalsEl = document.getElementById('portals');
 const comboEl = document.getElementById('combo');
+const modeEl = document.getElementById('mode');
 const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
+const modeBtn = document.getElementById('modeBtn');
 const restartBtn = document.getElementById('restartBtn');
 
 const gridSize = 20;
@@ -25,6 +28,7 @@ let best;
 let gameOver;
 let started;
 let paused;
+let wrapMode;
 let foodsEaten;
 let portals;
 let combo;
@@ -41,6 +45,10 @@ function syncControls() {
   if (pauseBtn) {
     pauseBtn.disabled = gameOver || !started;
     pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  if (modeBtn) {
+    modeBtn.textContent = wrapMode ? 'Wrap: On' : 'Wrap: Off';
   }
 }
 
@@ -104,6 +112,7 @@ function resetGame() {
   gameOver = false;
   started = false;
   paused = false;
+  wrapMode = false;
   portals = null;
   combo = 1;
   comboTicksLeft = 0;
@@ -117,8 +126,10 @@ function resetGame() {
 function updateUi() {
   scoreEl.textContent = String(score);
   bestEl.textContent = String(best);
+  lengthEl.textContent = String(snake.length);
   portalsEl.textContent = portals ? '2' : '0';
   comboEl.textContent = `x${combo}`;
+  modeEl.textContent = wrapMode ? 'Wrap' : 'Classic';
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space or Restart to play again.';
     statusEl.textContent = 'Game over. Press Space to restart.';
@@ -130,6 +141,8 @@ function updateUi() {
     statusEl.textContent = `Golden snack live! ${goldenFoodTicksLeft} ticks left.`;
   } else if (portals) {
     statusEl.textContent = `Portal pair active! Combo ${comboEl.textContent}.`;
+  } else if (wrapMode) {
+    statusEl.textContent = `Wrap mode active! Combo ${comboEl.textContent}.`;
   } else {
     statusEl.textContent = `Keep going! Combo ${comboEl.textContent}.`;
   }
@@ -170,6 +183,11 @@ function restartGame() {
   resetGame();
 }
 
+function toggleMode() {
+  wrapMode = !wrapMode;
+  updateUi();
+}
+
 function onKeyDown(event) {
   const moveByCode = {
     ArrowUp: [0, -1],
@@ -189,6 +207,29 @@ function onKeyDown(event) {
   };
   const key = event.key.toLowerCase();
   const move = moveByCode[event.code] || moveByKey[key];
+
+  if (move) {
+    event.preventDefault();
+    setDirection(move[0], move[1]);
+    return;
+  }
+
+  const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+  if (isSpace && gameOver) {
+    event.preventDefault();
+    restartGame();
+    return;
+  }
+
+  if (event.code === 'KeyP' || key === 'p') {
+    event.preventDefault();
+    togglePause();
+    return;
+  }
+
+  if (event.code === 'KeyT' || key === 't') {
+    event.preventDefault();
+    toggleMode();
 
   if (move) {
     event.preventDefault();
@@ -241,6 +282,13 @@ function step() {
     x: snake[0].x + direction.x,
     y: snake[0].y + direction.y,
   };
+
+  if (wrapMode) {
+    if (head.x < 0) head.x = tiles - 1;
+    else if (head.x >= tiles) head.x = 0;
+    if (head.y < 0) head.y = tiles - 1;
+    else if (head.y >= tiles) head.y = 0;
+  }
 
   if (portals) {
     const [first, second] = portals;
@@ -340,6 +388,7 @@ best = Number(localStorage.getItem('snake-best') || '0');
 window.addEventListener('keydown', onKeyDown);
 if (startBtn) startBtn.addEventListener('click', startGame);
 if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+if (modeBtn) modeBtn.addEventListener('click', toggleMode);
 if (restartBtn) restartBtn.addEventListener('click', restartGame);
 setInterval(() => {
   step();
