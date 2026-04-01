@@ -2,9 +2,15 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
+const lengthEl = document.getElementById('length');
 const portalsEl = document.getElementById('portals');
 const comboEl = document.getElementById('combo');
+const modeEl = document.getElementById('mode');
 const statusEl = document.getElementById('status');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const modeBtn = document.getElementById('modeBtn');
+const restartBtn = document.getElementById('restartBtn');
 
 const gridSize = 20;
 const tiles = canvas.width / gridSize;
@@ -21,12 +27,30 @@ let score;
 let best;
 let gameOver;
 let started;
+let paused;
+let wrapMode;
 let foodsEaten;
 let portals;
 let combo;
 let comboTicksLeft;
 let goldenFood;
 let goldenFoodTicksLeft;
+
+function syncControls() {
+  if (startBtn) {
+    startBtn.disabled = started && !paused && !gameOver;
+    startBtn.textContent = gameOver ? 'New Game' : (paused ? 'Resume' : 'Start');
+  }
+
+  if (pauseBtn) {
+    pauseBtn.disabled = gameOver || !started;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
+  if (modeBtn) {
+    modeBtn.textContent = wrapMode ? 'Wrap: On' : 'Wrap: Off';
+  }
+}
 
 function randomTile() {
   return {
@@ -41,7 +65,6 @@ function placeFood() {
     snake.some((segment) => segment.x === candidate.x && segment.y === candidate.y) ||
     (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y)) ||
     (goldenFood && candidate.x === goldenFood.x && candidate.y === goldenFood.y)
-    (portals && portals.some((portal) => portal.x === candidate.x && portal.y === candidate.y))
   ) {
     candidate = randomTile();
   }
@@ -88,6 +111,8 @@ function resetGame() {
   foodsEaten = 0;
   gameOver = false;
   started = false;
+  paused = false;
+  wrapMode = false;
   portals = null;
   combo = 1;
   comboTicksLeft = 0;
@@ -101,21 +126,27 @@ function resetGame() {
 function updateUi() {
   scoreEl.textContent = String(score);
   bestEl.textContent = String(best);
+  lengthEl.textContent = String(snake.length);
   portalsEl.textContent = portals ? '2' : '0';
   comboEl.textContent = `x${combo}`;
+  modeEl.textContent = wrapMode ? 'Wrap' : 'Classic';
   if (gameOver) {
-    statusEl.textContent = 'Game over. Press Space to restart.';
+    statusEl.textContent = 'Game over. Press Space or Restart to play again.';
+  } else if (paused) {
+    statusEl.textContent = 'Paused. Press P or Pause to continue.';
   } else if (!started) {
     statusEl.textContent = 'Press any movement key to start.';
   } else if (goldenFood) {
     statusEl.textContent = `Golden snack live! ${goldenFoodTicksLeft} ticks left.`;
   } else if (portals) {
     statusEl.textContent = `Portal pair active! Combo ${comboEl.textContent}.`;
-  } else if (portals) {
-    statusEl.textContent = 'Portal pair active! Glide through to teleport.';
+  } else if (wrapMode) {
+    statusEl.textContent = `Wrap mode active! Combo ${comboEl.textContent}.`;
   } else {
     statusEl.textContent = `Keep going! Combo ${comboEl.textContent}.`;
   }
+
+  syncControls();
 }
 
 function setDirection(x, y) {
@@ -124,25 +155,85 @@ function setDirection(x, y) {
   const isReversing = x === -direction.x && y === -direction.y;
   if (started && isReversing) return;
 
+  paused = false;
   nextDirection = { x, y };
   started = true;
 }
 
-function onKeyDown(event) {
-  const key = event.key.toLowerCase();
-
-  if (key === 'arrowup' || key === 'w') setDirection(0, -1);
-  if (key === 'arrowdown' || key === 's') setDirection(0, 1);
-  if (key === 'arrowleft' || key === 'a') setDirection(-1, 0);
-  if (key === 'arrowright' || key === 'd') setDirection(1, 0);
-
-  if (key === ' ' && gameOver) {
+function startGame() {
+  if (gameOver) {
     resetGame();
+  }
+  if (!started) {
+    setDirection(1, 0);
+  } else {
+    paused = false;
+    updateUi();
+  }
+}
+
+function togglePause() {
+  if (gameOver || !started) return;
+  paused = !paused;
+  updateUi();
+}
+
+function restartGame() {
+  resetGame();
+}
+
+function toggleMode() {
+  wrapMode = !wrapMode;
+  updateUi();
+}
+
+function onKeyDown(event) {
+  const moveByCode = {
+    ArrowUp: [0, -1],
+    ArrowDown: [0, 1],
+    ArrowLeft: [-1, 0],
+    ArrowRight: [1, 0],
+    KeyW: [0, -1],
+    KeyS: [0, 1],
+    KeyA: [-1, 0],
+    KeyD: [1, 0],
+  };
+  const moveByKey = {
+    w: [0, -1],
+    s: [0, 1],
+    a: [-1, 0],
+    d: [1, 0],
+  };
+  const key = event.key.toLowerCase();
+  const move = moveByCode[event.code] || moveByKey[key];
+
+  if (move) {
+    event.preventDefault();
+    setDirection(move[0], move[1]);
+    return;
+  }
+
+  const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+  if (isSpace && gameOver) {
+    event.preventDefault();
+    restartGame();
+    return;
+  }
+
+  if (event.code === 'KeyP' || key === 'p') {
+    event.preventDefault();
+    togglePause();
+    return;
+  }
+
+  if (event.code === 'KeyT' || key === 't') {
+    event.preventDefault();
+    toggleMode();
   }
 }
 
 function step() {
-  if (gameOver || !started) {
+  if (gameOver || !started || paused) {
     draw();
     return;
   }
@@ -172,6 +263,13 @@ function step() {
     x: snake[0].x + direction.x,
     y: snake[0].y + direction.y,
   };
+
+  if (wrapMode) {
+    if (head.x < 0) head.x = tiles - 1;
+    else if (head.x >= tiles) head.x = 0;
+    if (head.y < 0) head.y = tiles - 1;
+    else if (head.y >= tiles) head.y = 0;
+  }
 
   if (portals) {
     const [first, second] = portals;
@@ -221,13 +319,6 @@ function step() {
     if (foodsEaten % goldenFoodEvery === 0) {
       placeGoldenFood();
     }
-  if (head.x === food.x && head.y === food.y) {
-    score += 1;
-    foodsEaten += 1;
-    best = Math.max(best, score);
-    if (foodsEaten % 5 === 0) {
-      placePortals();
-    }
     placeFood();
     updateUi();
   } else {
@@ -276,6 +367,10 @@ function draw() {
 
 best = Number(localStorage.getItem('snake-best') || '0');
 window.addEventListener('keydown', onKeyDown);
+if (startBtn) startBtn.addEventListener('click', startGame);
+if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+if (modeBtn) modeBtn.addEventListener('click', toggleMode);
+if (restartBtn) restartBtn.addEventListener('click', restartGame);
 setInterval(() => {
   step();
   localStorage.setItem('snake-best', String(best));
