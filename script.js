@@ -132,6 +132,7 @@ function updateUi() {
   modeEl.textContent = wrapMode ? 'Wrap' : 'Classic';
   if (gameOver) {
     statusEl.textContent = 'Game over. Press Space or Restart to play again.';
+    statusEl.textContent = 'Game over. Press Space to restart.';
   } else if (paused) {
     statusEl.textContent = 'Paused. Press P or Pause to continue.';
   } else if (!started) {
@@ -229,6 +230,24 @@ function onKeyDown(event) {
   if (event.code === 'KeyT' || key === 't') {
     event.preventDefault();
     toggleMode();
+
+  if (move) {
+    event.preventDefault();
+    setDirection(move[0], move[1]);
+    return;
+  }
+
+  const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+  if (isSpace && gameOver) {
+    event.preventDefault();
+    restartGame();
+    return;
+  }
+
+  if (event.code === 'KeyP' || key === 'p') {
+    event.preventDefault();
+    togglePause();
+    resetGame();
   }
 }
 
